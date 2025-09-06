@@ -16,58 +16,71 @@ def generate_sql_query(question: str, schema: str) -> str:
     """
     current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    # --- THIS IS THE NEW, MORE DETAILED PROMPT ---
-    prompt = f"""
-[INST]
-You are an expert SQL data analyst. Your task is to convert natural language questions into executable SQLite queries based on the provided database schema.
+    # --- SIMPLIFIED PROMPT FOR 7B MODEL ---
+    prompt = f"""You are a SQL expert. Return ONLY the SQL query, no explanations, understand the schema properly, understand which column might represent which one, here is the schema, if you think that the response can't be fulfilled then reply that we can't fulfill that response:
 
-### DATABASE SCHEMA
-{schema}
+Schema: {schema}
 
-### CRITICAL RULES
-1.  **You MUST only use the column names available in the schema provided.** Do not invent or assume column names. For example, the roster only has `practice_phone`, so DO NOT use non-existent columns like `mailing_phone`.
-2.  **Respond with ONLY the SQL query.** Do not add any explanations, introductions, or markdown. Just the code.
-3.  Ensure the query is valid for SQLite.
+Key columns:
+- is_license_active = 0 means expired license
+- is_license_found = 0 means license not found  
+- is_npi_found = 0 means NPI not found
 
-### CONCEPT DEFINITIONS
-- A **"phone number formatting issue"** means the `phone_number_clean` column does not have a length of 10.
-- **"Unverified licenses"** or **"unverified NPIs"** mean the `is_license_found` or `is_npi_found` columns are 0.
-- **"Expired licenses"** means the `is_license_active` column is 0.
-- The **"data quality score"** is calculated by averaging the `is_license_found`, `is_license_active`, and `is_npi_found` columns.
+Examples:
+Q: "How many providers have expired licenses?"
+A: SELECT COUNT(*) FROM provider_roster WHERE is_license_active = 0;
 
-### EXAMPLES
-- Question: "How many providers have expired licenses in our network?"
-- SQL: SELECT COUNT(*) FROM provider_roster WHERE is_license_active = 0;
+Q: "Show providers with NPI issues"  
+A: SELECT full_name, primary_specialty FROM provider_roster WHERE is_npi_found = 0;
 
-- Question: "Which providers are missing NPI numbers?"
-- SQL: SELECT full_name, primary_specialty FROM provider_roster WHERE npi IS NULL;
+Q: "What is the overall data quality score?"
+A: SELECT AVG((is_license_found + is_license_active + is_npi_found) / 3.0) * 100 FROM provider_roster;
 
-- Question: "Show me a summary of all data quality problems by state"
-- SQL: SELECT practice_state, COUNT(*) AS total_providers, SUM(CASE WHEN is_license_found = 0 THEN 1 ELSE 0 END) AS unverified_licenses, SUM(CASE WHEN is_npi_found = 0 THEN 1 ELSE 0 END) AS unverified_npis, SUM(CASE WHEN is_license_active = 0 THEN 1 ELSE 0 END) as inactive_licenses FROM provider_roster GROUP BY practice_state;
+Q: "Which specialty has the lowest quality score?"
+A: SELECT primary_specialty, AVG((is_license_found + is_license_active + is_npi_found) / 3.0) * 100 as quality_score FROM provider_roster GROUP BY primary_specialty ORDER BY quality_score ASC LIMIT 1;
 
-- Question: "List all cardiologists in New York"
-- SQL: SELECT full_name, practice_address_line1 FROM provider_roster WHERE primary_specialty = 'Cardiology' AND practice_state = 'NY';
-
-### USER QUESTION
 Question: "{question}"
-[/INST]
-SQL:
-"""
+SQL:"""
     
     # --- Generate the Query using Ollama ---
     try:
-        print(f"🤖 Sending prompt to Ollama using codellama:13b-instruct for: '{question}'")
+        print(f"🤖 Sending prompt to Ollama using qwen2.5-coder:7b for: '{question}'")
         
         response = ollama.generate(
-            model='codellama:13b-instruct', 
+            model='qwen2.5-coder:7b', 
             prompt=prompt,
             stream=False,
             options={
-                'stop': ['###', ';', '[/SQL]']
+                'stop': ['\n\n', 'Question:', 'Q:', 'A:', 'SQL:']
             }
         )
         
         generated_sql = response['response'].strip()
+        
+        # Remove markdown code block formatting if present
+        if generated_sql.startswith('```sql'):
+            generated_sql = generated_sql.replace('```sql', '').strip()
+        if generated_sql.startswith('```'):
+            generated_sql = generated_sql.replace('```', '').strip()
+        if generated_sql.endswith('```'):
+            generated_sql = generated_sql.replace('```', '').strip()
+        
+        # Clean up any remaining markdown artifacts
+        generated_sql = generated_sql.replace('```sql', '').replace('```', '').strip()
+        
+        # Extract SQL from explanatory text if present
+        if 'SELECT' in generated_sql:
+            # Find the first SELECT statement
+            select_start = generated_sql.find('SELECT')
+            if select_start != -1:
+                generated_sql = generated_sql[select_start:].strip()
+                # Remove any text after the SQL query
+                if ';' in generated_sql:
+                    generated_sql = generated_sql[:generated_sql.find(';') + 1]
+        
+        # If no SQL found, return a fallback
+        if not generated_sql.startswith('SELECT'):
+            generated_sql = "SELECT 'No valid SQL generated' as error;"
         
         if not generated_sql.endswith(';'):
             generated_sql += ';'
