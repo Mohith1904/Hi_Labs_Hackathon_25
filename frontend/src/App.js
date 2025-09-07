@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MessageCircle, Database, BarChart3, Users, AlertTriangle, CheckCircle } from 'lucide-react';
+import { MessageCircle, Database, BarChart3, Users, AlertTriangle, CheckCircle, LayoutDashboard, Bot } from 'lucide-react';
 import DataVisualization from './components/DataVisualization';
+import Dashboard from './components/Dashboard';
 import './App.css';
 
 const API_BASE_URL = 'http://127.0.0.1:5001';
@@ -12,6 +13,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [stats, setStats] = useState(null);
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' or 'chatbot'
 
   // Sample questions for quick access
   const sampleQuestions = [
@@ -96,6 +98,16 @@ function App() {
 
   const askSampleQuestion = (question) => {
     setInputMessage(question);
+    setCurrentView('chatbot'); // Switch to chatbot view when asking a question
+  };
+
+  const handleAskQuestion = (question) => {
+    setInputMessage(question);
+    setCurrentView('chatbot');
+    // Automatically send the question
+    setTimeout(() => {
+      sendMessage();
+    }, 100);
   };
 
   const safeStringify = (value) => {
@@ -156,127 +168,130 @@ function App() {
     <div className="container">
       <header className="header">
         <h1>Provider Data Quality Analytics</h1>
-        <p>Ask questions about provider credentials and data quality</p>
+        <p>Comprehensive analysis of provider data quality, license validation, and entity resolution</p>
+        
+        {/* Navigation Tabs */}
+        <div className="nav-tabs">
+          <button 
+            className={`nav-tab ${currentView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentView('dashboard')}
+          >
+            <LayoutDashboard size={20} />
+            Dashboard
+          </button>
+          <button 
+            className={`nav-tab ${currentView === 'chatbot' ? 'active' : ''}`}
+            onClick={() => setCurrentView('chatbot')}
+          >
+            <Bot size={20} />
+            Ask Questions
+          </button>
+        </div>
       </header>
 
-      {/* Stats Overview */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <Users className="stat-icon" size={32} />
-          <div className="stat-number">524</div>
-          <div className="stat-label">Total Providers</div>
-        </div>
-        <div className="stat-card">
-          <CheckCircle className="stat-icon" size={32} />
-          <div className="stat-number">85%</div>
-          <div className="stat-label">Valid Licenses</div>
-        </div>
-        <div className="stat-card">
-          <AlertTriangle className="stat-icon" size={32} />
-          <div className="stat-number">15%</div>
-          <div className="stat-label">Data Issues</div>
-        </div>
-        <div className="stat-card">
-          <BarChart3 className="stat-icon" size={32} />
-          <div className="stat-number">92</div>
-          <div className="stat-label">Quality Score</div>
-        </div>
-      </div>
-
+      {/* Main Content Area */}
       <div className="main-content">
-        {/* Chat Interface */}
-        <div className="card">
-          <div className="chat-container">
-            <div className="chat-header">
-              <MessageCircle className="icon" size={24} />
-              <h2>Ask Questions</h2>
+        {currentView === 'dashboard' ? (
+          <Dashboard onAskQuestion={handleAskQuestion} />
+        ) : (
+          <div className="chatbot-view">
+            <div className="chatbot-layout">
+              {/* Chat Interface */}
+              <div className="card chat-card">
+                <div className="chat-container">
+                  <div className="chat-header">
+                    <MessageCircle className="icon" size={24} />
+                    <h2>Ask Questions</h2>
+                  </div>
+
+                <div className="messages">
+                  {messages.map((message, index) => (
+                    <div key={index} className={`message ${message.type}`}>
+                      <div>{message.content}</div>
+                      <div className="message-time">
+                        {message.timestamp.toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))}
+                  {isLoading && (
+                    <div className="message assistant">
+                      <div className="loading">
+                        <div className="spinner"></div>
+                        Processing your question...
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="input-container">
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Ask about provider data quality..."
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    disabled={isLoading}
+                  />
+                  <button
+                    className="send-button"
+                    onClick={sendMessage}
+                    disabled={isLoading || !inputMessage.trim()}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="messages">
-              {messages.map((message, index) => (
-                <div key={index} className={`message ${message.type}`}>
-                  <div>{message.content}</div>
-                  <div className="message-time">
-                    {message.timestamp.toLocaleTimeString()}
+              {/* Results Display */}
+              <div className="card results-card">
+                {renderResults()}
+                {results && results.data && results.data.length > 0 && (
+                  <div style={{ marginTop: '20px' }}>
+                    <DataVisualization 
+                      data={results.data.slice(0, 10)} 
+                      type="bar" 
+                    />
                   </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="message assistant">
-                  <div className="loading">
-                    <div className="spinner"></div>
-                    Processing your question...
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            <div className="input-container">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Ask about provider data quality..."
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-              />
-              <button
-                className="send-button"
-                onClick={sendMessage}
-                disabled={isLoading || !inputMessage.trim()}
-              >
-                Send
-              </button>
+            {/* Sample Questions */}
+            <div className="card">
+              <h3 style={{ marginBottom: '20px', color: '#333' }}>Try These Questions:</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
+                {sampleQuestions.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => askSampleQuestion(question)}
+                    style={{
+                      padding: '12px 16px',
+                      background: '#f8f9fa',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.3s',
+                      fontSize: '14px'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = '#e9ecef';
+                      e.target.style.borderColor = '#007bff';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = '#f8f9fa';
+                      e.target.style.borderColor = '#dee2e6';
+                    }}
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Results Display */}
-        <div className="card">
-          {renderResults()}
-          {results && results.data && results.data.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
-              <DataVisualization 
-                data={results.data.slice(0, 10)} 
-                type="bar" 
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Sample Questions */}
-      <div className="card">
-        <h3 style={{ marginBottom: '20px', color: '#333' }}>Try These Questions:</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
-          {sampleQuestions.map((question, index) => (
-            <button
-              key={index}
-              onClick={() => askSampleQuestion(question)}
-              style={{
-                padding: '12px 16px',
-                background: '#f8f9fa',
-                border: '1px solid #dee2e6',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.3s',
-                fontSize: '14px'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.background = '#e9ecef';
-                e.target.style.borderColor = '#007bff';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.background = '#f8f9fa';
-                e.target.style.borderColor = '#dee2e6';
-              }}
-            >
-              {question}
-            </button>
-          ))}
-        </div>
+        )}
       </div>
     </div>
   );

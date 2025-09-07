@@ -43,15 +43,13 @@ code {
 }
 
 .main-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
+  display: block;
   margin-bottom: 30px;
 }
 
 @media (max-width: 768px) {
   .main-content {
-    grid-template-columns: 1fr;
+    display: block;
   }
 }
 
