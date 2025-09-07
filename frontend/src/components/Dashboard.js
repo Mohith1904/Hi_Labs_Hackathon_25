@@ -32,9 +32,10 @@ const Dashboard = ({ onAskQuestion }) => {
           name: 'summary',
           sql: `SELECT 
             COUNT(*) AS total_providers,
-            SUM(CASE WHEN is_license_active = 0 THEN 1 ELSE 0 END) AS expired_licenses,
+            SUM(CASE WHEN is_license_found = 1 AND is_license_active = 0 THEN 1 ELSE 0 END) AS expired_licenses,
             SUM(CASE WHEN is_npi_found = 0 THEN 1 ELSE 0 END) AS npi_issues,
-            AVG((is_license_found + is_license_active + is_npi_found) / 3.0) * 100 AS overall_quality_score
+            AVG((is_license_found + is_license_active + is_npi_found) / 3.0) * 100 AS overall_quality_score,
+            COUNT(CASE WHEN is_license_active = 0 OR is_npi_found = 0 OR is_license_found = 0 THEN 1 END) AS providers_with_issues
           FROM provider_roster`
         },
         {
@@ -58,9 +59,12 @@ const Dashboard = ({ onAskQuestion }) => {
           name: 'data_quality',
           sql: `SELECT 
             SUM(CASE WHEN npi IS NULL OR npi = '' THEN 1 ELSE 0 END) AS missing_npi,
-            SUM(CASE WHEN phone IS NULL OR phone = '' THEN 1 ELSE 0 END) AS missing_phone,
-            SUM(CASE WHEN address IS NULL OR address = '' THEN 1 ELSE 0 END) AS missing_address,
-            SUM(CASE WHEN specialty IS NULL OR specialty = '' THEN 1 ELSE 0 END) AS missing_specialty
+            SUM(CASE WHEN practice_phone IS NULL OR practice_phone = '' THEN 1 ELSE 0 END) AS missing_phone,
+            SUM(CASE WHEN practice_address_line1 IS NULL OR practice_address_line1 = '' THEN 1 ELSE 0 END) AS missing_address,
+            SUM(CASE WHEN primary_specialty IS NULL OR primary_specialty = '' THEN 1 ELSE 0 END) AS missing_specialty,
+            SUM(CASE WHEN is_npi_found = 0 THEN 1 ELSE 0 END) AS npi_validation_issues,
+            SUM(CASE WHEN is_license_found = 0 THEN 1 ELSE 0 END) AS license_validation_issues,
+            SUM(CASE WHEN is_license_found = 1 AND is_license_active = 0 THEN 1 ELSE 0 END) AS expired_license_issues
           FROM provider_roster`
         },
         {
@@ -75,12 +79,12 @@ const Dashboard = ({ onAskQuestion }) => {
         {
           name: 'specialty_quality',
           sql: `SELECT 
-            specialty,
+            primary_specialty,
             COUNT(*) AS provider_count,
             AVG((is_license_found + is_license_active + is_npi_found) / 3.0) * 100 AS avg_quality_score
           FROM provider_roster 
-          WHERE specialty IS NOT NULL AND specialty != ''
-          GROUP BY specialty
+          WHERE primary_specialty IS NOT NULL AND primary_specialty != ''
+          GROUP BY primary_specialty
           ORDER BY avg_quality_score ASC
           LIMIT 5`
         }
@@ -101,6 +105,7 @@ const Dashboard = ({ onAskQuestion }) => {
 
       // Process and structure the data
       const processedData = processDashboardData(results);
+      console.log('Dashboard data loaded:', processedData);
       setDashboardData(processedData);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -247,6 +252,7 @@ const Dashboard = ({ onAskQuestion }) => {
   const expiredLicenses = summary.expired_licenses || 0;
   const npiIssues = summary.npi_issues || 0;
   const qualityScore = summary.overall_quality_score || 0;
+  const providersWithIssues = summary.providers_with_issues || 0;
   
   // Duplicate detection metrics
   const potentialDuplicates = duplicates.name_variations || 0;
@@ -263,10 +269,13 @@ const Dashboard = ({ onAskQuestion }) => {
   const missingPhone = dataQuality.missing_phone || 0;
   const missingAddress = dataQuality.missing_address || 0;
   const missingSpecialty = dataQuality.missing_specialty || 0;
+  const npiValidationIssues = dataQuality.npi_validation_issues || 0;
+  const licenseValidationIssues = dataQuality.license_validation_issues || 0;
+  const expiredLicenseIssues = dataQuality.expired_license_issues || 0;
   
   // Calculate percentages safely
   const validLicensePercentage = totalProviders > 0 ? Math.round((validLicenses / totalProviders) * 100) : 0;
-  const dataIssuesPercentage = totalProviders > 0 ? Math.round(((expiredLicenses + npiIssues) / totalProviders) * 100) : 0;
+  const dataIssuesPercentage = totalProviders > 0 ? Math.round((providersWithIssues / totalProviders) * 100) : 0;
 
   return (
     <div className="dashboard">
@@ -295,7 +304,7 @@ const Dashboard = ({ onAskQuestion }) => {
           icon={AlertTriangle}
           title="Data Issues"
           value={`${dataIssuesPercentage}%`}
-          subtitle={`${expiredLicenses + npiIssues} providers need attention`}
+          subtitle={`${providersWithIssues} providers need attention`}
           color="warning"
         />
         <StatCard
@@ -354,15 +363,15 @@ const Dashboard = ({ onAskQuestion }) => {
             icon={Database}
             color={COLORS.info}
             metrics={[
-              { label: "NPI Issues", value: missingNPI.toString(), color: COLORS.warning },
-              { label: "Phone Issues", value: missingPhone.toString(), color: COLORS.danger },
-              { label: "Address Issues", value: missingAddress.toString(), color: COLORS.secondary }
+              { label: "NPI Validation Issues", value: npiValidationIssues.toString(), color: COLORS.warning },
+              { label: "License Validation Issues", value: licenseValidationIssues.toString(), color: COLORS.danger },
+              { label: "Expired Licenses", value: expiredLicenseIssues.toString(), color: COLORS.secondary }
             ]}
             chartData={[
-              { name: "Missing NPI", value: missingNPI },
-              { name: "Missing Phone", value: missingPhone },
-              { name: "Missing Address", value: missingAddress },
-              { name: "Missing Specialty", value: missingSpecialty }
+              { name: "NPI Validation Issues", value: npiValidationIssues },
+              { name: "License Validation Issues", value: licenseValidationIssues },
+              { name: "Expired Licenses", value: expiredLicenseIssues },
+              { name: "Missing Data", value: missingNPI + missingPhone + missingAddress }
             ]}
             chartType="bar"
           />
