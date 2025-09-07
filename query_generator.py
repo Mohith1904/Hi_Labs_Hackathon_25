@@ -36,8 +36,6 @@ A: SELECT full_name, primary_specialty FROM provider_roster WHERE is_npi_found =
 Q: "What is the overall data quality score?"
 A: SELECT AVG((is_license_found + is_license_active + is_npi_found) / 3.0) * 100 FROM provider_roster;
 
-Q: "Which specialty has the lowest quality score?"
-A: SELECT primary_specialty, AVG((is_license_found + is_license_active + is_npi_found) / 3.0) * 100 as quality_score FROM provider_roster GROUP BY primary_specialty ORDER BY quality_score ASC LIMIT 1;
 
 Question: "{question}"
 SQL:"""
