@@ -1,8 +1,7 @@
-# query_generator.py
 import ollama
 from datetime import datetime
 
-# --- 1. Check if Ollama is running ---
+# --- Check if Ollama is running ---
 try:
     ollama.list() 
     print("✅ Ollama server is running and accessible.")
@@ -16,7 +15,7 @@ def generate_sql_query(question: str, schema: str) -> str:
     """
     current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    # --- SIMPLIFIED PROMPT FOR 7B MODEL ---
+    # --- PROMPT FOR 7B MODEL ---
     prompt = f"""You are a SQL expert. Return ONLY the SQL query, no explanations, understand the schema properly, understand which column might represent which one, here is the schema, if you think that the response can't be fulfilled then reply that we can't fulfill that response:
 
 Schema: {schema}
@@ -40,7 +39,7 @@ A: SELECT AVG((is_license_found + is_license_active + is_npi_found) / 3.0) * 100
 Question: "{question}"
 SQL:"""
     
-    # --- Generate the Query using Ollama ---
+    # --- Generating the Query using Ollama ---
     try:
         print(f"🤖 Sending prompt to Ollama using qwen2.5-coder:7b for: '{question}'")
         
@@ -55,7 +54,6 @@ SQL:"""
         
         generated_sql = response['response'].strip()
         
-        # Remove markdown code block formatting if present
         if generated_sql.startswith('```sql'):
             generated_sql = generated_sql.replace('```sql', '').strip()
         if generated_sql.startswith('```'):
@@ -63,20 +61,16 @@ SQL:"""
         if generated_sql.endswith('```'):
             generated_sql = generated_sql.replace('```', '').strip()
         
-        # Clean up any remaining markdown artifacts
         generated_sql = generated_sql.replace('```sql', '').replace('```', '').strip()
         
         # Extract SQL from explanatory text if present
         if 'SELECT' in generated_sql:
-            # Find the first SELECT statement
             select_start = generated_sql.find('SELECT')
             if select_start != -1:
                 generated_sql = generated_sql[select_start:].strip()
-                # Remove any text after the SQL query
                 if ';' in generated_sql:
                     generated_sql = generated_sql[:generated_sql.find(';') + 1]
         
-        # If no SQL found, return a fallback
         if not generated_sql.startswith('SELECT'):
             generated_sql = "SELECT 'No valid SQL generated' as error;"
         

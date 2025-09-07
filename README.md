@@ -10,6 +10,19 @@ This application addresses three core data quality problems:
 2. **License Validation & Compliance Tracking** - Cross-references provider licenses with state medical board databases to detect expired credentials, invalid license numbers, and specialty mismatches  
 3. **Data Quality Assessment & Standardization** - Analyzes provider data for formatting inconsistencies, missing information, and anomalies
 
+### 📸 Screenshots
+
+**Dashboard Screenshots:**
+<table>
+<tr>
+<td><img src="images/dashboard1.png" alt="Dashboard Overview" width="400"></td>
+<td><img src="images/dashboard2.png" alt="Data Quality Problems" width="400"></td>
+</tr>
+<tr>
+<td colspan="2" style="text-align: center;"><img src="images/dashboard3.png" alt="Detailed Analytics" width="400"></td>
+</tr>
+</table>
+
 ## 🏗️ Architecture
 
 ```
@@ -121,6 +134,14 @@ The application will be available at:
 - **Real-time Results**: Instant query execution and result display
 - **Data Visualization**: Automatic chart generation for query results
 
+**Chatbot Screenshots:**
+<table>
+<tr>
+<td><img src="images/chatbot1.png" alt="Chatbot Interface" width="400"></td>
+<td><img src="images/chatbot2.png" alt="Query Results" width="400"></td>
+</tr>
+</table>
+
 ## 💬 Query Examples
 
 ### ✅ Good Queries (Recommended)
@@ -140,9 +161,9 @@ The model is optimized for small, focused queries. Avoid:
 - Very long, complex questions
 - Questions requiring multiple aggregations
 
-## 🗄️ Data Schema
+##  Data Schema
 
-The application is currently hardcoded for the following schema:
+The application dashboard is currently hardcoded for the following schema:
 
 ### Provider Roster Table
 - `provider_id`, `npi`, `first_name`, `last_name`, `full_name`
@@ -178,7 +199,7 @@ Update the model in `query_generator.py`:
 model='qwen2.5-coder:7b'  # Change to your preferred model
 ```
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -254,21 +275,10 @@ curl -X POST http://localhost:5001/execute_sql \
 
 This project is part of the HI Labs AI Quest hackathon.
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📞 Support
-
-For issues or questions:
-1. Check the troubleshooting section
-2. Verify all prerequisites are installed
-3. Ensure backend starts before frontend
-4. Keep queries simple and focused
+1. Verify all prerequisites are installed
+2. Ensure backend starts before frontend
+3. Keep queries simple and focused
 
 ---
 

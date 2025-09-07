@@ -18,7 +18,6 @@ const DataVisualization = ({ data, type = 'bar' }) => {
 
   // Transform data to ensure proper format for charts
   const chartData = data.map((item, index) => {
-    // Handle different data structures
     let name, value;
     
     if (item.primary_specialty && item.provider_count) {

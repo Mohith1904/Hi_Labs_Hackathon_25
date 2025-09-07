@@ -1,4 +1,4 @@
-# app.py
+
 import json
 import pandas as pd
 from flask import Flask, request, jsonify
@@ -7,12 +7,10 @@ from flask_cors import CORS
 from database_setup import setup_database, get_db_schema
 from query_generator import generate_sql_query
 
-# Initialize Flask App
 app = Flask(__name__)
-CORS(app) # Allows your web frontend to call this backend
+CORS(app) 
 
-# --- Initial Setup ---
-# Create the in-memory database and get the connection object
+
 print("Setting up the database...")
 db_connection = setup_database()
 db_schema = get_db_schema(db_connection)
@@ -36,7 +34,6 @@ def execute_sql():
     try:
         # Use pandas to execute query and get a DataFrame
         results_df = pd.read_sql_query(sql_query, db_connection)
-        # Convert DataFrame to JSON format suitable for web display
         results_json = results_df.to_json(orient='records')
         # Parse it back to a Python object to be re-serialized by jsonify
         response_data = json.loads(results_json)
@@ -66,17 +63,15 @@ def chat():
 
     print(f"\nReceived question: {user_question}")
 
-    # Step 1: Generate SQL from the user's question
+    #Generate SQL from the user's question
     sql_query = generate_sql_query(user_question, db_schema)
     print(f"Generated SQL: {sql_query}")
 
-    # Step 2: Execute the query and handle potential errors
+    #Execute the query and handle potential errors
     try:
         # Use pandas to execute query and get a DataFrame
         results_df = pd.read_sql_query(sql_query, db_connection)
-        # Convert DataFrame to JSON format suitable for web display
         results_json = results_df.to_json(orient='records')
-        # Parse it back to a Python object to be re-serialized by jsonify
         response_data = json.loads(results_json)
         
         print(f"Query successful. Returning {len(response_data)} records.")

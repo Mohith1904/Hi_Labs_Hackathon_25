@@ -7,28 +7,39 @@ This guide will help you set up both the backend and frontend for the Provider D
 - **Backend**: Flask API with SQLite database
 - **Frontend**: React web application (or simple HTML version)
 - **Data Processing**: Pandas for data manipulation and fuzzy matching
-- **Text-to-SQL**: AI-powered query generation
+- **Text-to-SQL**: AI-powered query generation using Ollama (qwen2.5-coder:7b)
+- **AI Model**: Local Ollama server with Qwen2.5 Coder 7B model
 
 ## 📋 Prerequisites
 
 - Python 3.8 or higher
 - Node.js 14 or higher (for React frontend)
+- **Ollama** (for AI model) - Download from https://ollama.ai/
 - Git (optional)
 
 ## 🚀 Quick Start
 
 ### Option 1: React Frontend (Recommended)
 
-1. **Start the Backend**:
+1. **Setup Ollama and Model**:
+   ```bash
+   # Install Ollama (if not already installed)
+   # Download from: https://ollama.ai/
+   
+   # Pull the required model
+   ollama pull qwen2.5-coder:7b
+   ```
+
+2. **Start the Backend**:
    ```bash
    # Install Python dependencies
-   pip install pandas fastapi uvicorn phonenumbers fuzzywuzzy python-levenshtein vanna
+   pip install -r requirements.txt
 
    # Run the Flask backend
    python app.py
    ```
 
-2. **Start the React Frontend**:
+3. **Start the React Frontend**:
    ```bash
    # Navigate to frontend directory
    cd frontend
@@ -40,17 +51,26 @@ This guide will help you set up both the backend and frontend for the Provider D
    npm start
    ```
 
-3. **Access the Application**:
+4. **Access the Application**:
    - Frontend: http://localhost:3000
    - Backend API: http://127.0.0.1:5001
 
 ### Option 2: Simple HTML Frontend
 
-1. **Start the Backend** (same as above)
+1. **Setup Ollama and Model** (same as above)
 
-2. **Open the HTML File**:
+2. **Start the Backend** (same as above)
+
+3. **Open the HTML File**:
    - Simply open `frontend/simple/index.html` in your web browser
    - No additional setup required!
+
+### Option 3: Automated Setup (Windows)
+
+Use the provided batch files for easier setup:
+
+1. **Setup Model**: Run `setup_qwen_model.bat`
+2. **Start Application**: Run `start_app.bat`
 
 ## 📁 Project Structure
 
@@ -72,18 +92,40 @@ hi-labs-hackathon/
 ├── database_setup.py              # Database setup and validation
 ├── query_generator.py             # AI query generation
 ├── requirements.txt               # Python dependencies
+├── setup_qwen_model.bat          # Ollama model setup script
+├── start_app.bat                 # Application launcher script
 └── SETUP_GUIDE.md                # This file
 ```
 
 ## 🔧 Backend Setup Details
 
-### 1. Install Python Dependencies
+### 1. Setup Ollama and AI Model
+
+**Important**: The application requires Ollama to be running with the qwen2.5-coder:7b model.
+
+```bash
+# Install Ollama (if not already installed)
+# Download from: https://ollama.ai/
+
+# Start Ollama service (if not running)
+ollama serve
+
+# Pull the required model (this may take several minutes)
+ollama pull qwen2.5-coder:7b
+
+# Verify the model is available
+ollama list
+```
+
+### 2. Install Python Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Data Processing Pipeline
+**Note**: The requirements.txt includes Flask, Pandas, fuzzy matching libraries, and other dependencies. SQLite3 is built into Python and doesn't need to be installed separately.
+
+### 3. Data Processing Pipeline
 
 The backend performs the following steps:
 
@@ -95,10 +137,11 @@ The backend performs the following steps:
 3. **Database Creation**: Creates in-memory SQLite database
 4. **API Server**: Starts Flask server on port 5001
 
-### 3. API Endpoints
+### 4. API Endpoints
 
 - `GET /` - Health check
-- `POST /chat` - Process natural language queries
+- `POST /chat` - Process natural language queries (uses AI model)
+- `POST /execute_sql` - Directly execute SQL queries (for dashboard)
 
 ## 🎨 Frontend Setup Details
 
@@ -174,6 +217,31 @@ Try these questions to test the system:
 
 ## 🐛 Troubleshooting
 
+### Ollama Issues
+
+1. **Ollama Not Running**:
+   ```bash
+   # Start Ollama service
+   ollama serve
+   
+   # Check if Ollama is running
+   ollama list
+   ```
+
+2. **Model Not Found**:
+   ```bash
+   # Pull the required model
+   ollama pull qwen2.5-coder:7b
+   
+   # Verify model is available
+   ollama list
+   ```
+
+3. **Connection Timeout**:
+   - Ensure Ollama is running on default port (11434)
+   - Check firewall settings
+   - Restart Ollama service
+
 ### Backend Issues
 
 1. **Port Already in Use**:
@@ -192,6 +260,11 @@ Try these questions to test the system:
 3. **Data Files Not Found**:
    - Ensure CSV files are in the `data/` directory
    - Check file names match exactly
+
+4. **AI Model Errors**:
+   - Verify Ollama is running: `ollama list`
+   - Check model name: should be `qwen2.5-coder:7b`
+   - Restart both Ollama and Flask backend
 
 ### Frontend Issues
 
@@ -226,8 +299,13 @@ Try these questions to test the system:
 2. **Environment Variables**:
    ```bash
    export FLASK_ENV=production
-   export DATABASE_URL=your_database_url
+   export FLASK_DEBUG=False
    ```
+
+3. **Ollama Setup**:
+   - Ensure Ollama is running as a service
+   - Model should be available: `ollama pull qwen2.5-coder:7b`
+   - Consider using a more powerful model for production
 
 ### Frontend Deployment
 

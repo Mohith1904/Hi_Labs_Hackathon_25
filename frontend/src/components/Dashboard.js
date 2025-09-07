@@ -273,7 +273,7 @@ const Dashboard = ({ onAskQuestion }) => {
   const licenseValidationIssues = dataQuality.license_validation_issues || 0;
   const expiredLicenseIssues = dataQuality.expired_license_issues || 0;
   
-  // Calculate percentages safely
+  // Calculating percentages safely
   const validLicensePercentage = totalProviders > 0 ? Math.round((validLicenses / totalProviders) * 100) : 0;
   const dataIssuesPercentage = totalProviders > 0 ? Math.round((providersWithIssues / totalProviders) * 100) : 0;
 

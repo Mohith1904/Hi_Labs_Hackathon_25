@@ -1,12 +1,10 @@
-# database_setup.py
 import pandas as pd
 import sqlite3
 import re
 from datetime import datetime
 from fuzzywuzzy import process
-from tqdm import tqdm # A progress bar for long operations
+from tqdm import tqdm 
 
-# File paths to your datasets
 PROVIDER_ROSTER_PATH = 'data/provider_roster_with_errors.csv'
 NY_LICENSE_PATH = 'data/ny_medical_license_database.csv'
 CA_LICENSE_PATH = 'data/ca_medical_license_database.csv'
@@ -62,7 +60,6 @@ def setup_database():
     """
     Loads, cleans, enriches, and validates data, then populates an in-memory SQLite database.
     """
-    # Load and normalize column names
     provider_roster = pd.read_csv(PROVIDER_ROSTER_PATH)
     ny_licenses = pd.read_csv(NY_LICENSE_PATH)
     ca_licenses = pd.read_csv(CA_LICENSE_PATH)
@@ -73,7 +70,7 @@ def setup_database():
 
     # --- Pre-computation for Faster Matching ---
     
-    # **FIX:** Remove duplicate provider names to ensure a unique index
+    #Remove duplicate provider names to ensure a unique index
     ny_licenses.drop_duplicates(subset=['provider_name'], keep='first', inplace=True)
     ca_licenses.drop_duplicates(subset=['provider_name'], keep='first', inplace=True)
 
@@ -84,7 +81,7 @@ def setup_database():
     ca_licenses['expiration_date'] = pd.to_datetime(ca_licenses['expiration_date'], errors='coerce')
     ca_license_map = ca_licenses.set_index('provider_name').to_dict('index')
 
-    # **FIX:** Correctly create a 'full_name' column and remove duplicates before creating the NPI map
+    #Correctly create a 'full_name' column and remove duplicates before creating the NPI map
     npi_registry['full_name'] = npi_registry['provider_first_name'].astype(str) + ' ' + npi_registry['provider_last_name'].astype(str)
     npi_registry.drop_duplicates(subset=['full_name'], keep='first', inplace=True)
     npi_registry_map = npi_registry.set_index('full_name').to_dict('index')
